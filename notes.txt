@@ -1,0 +1,5 @@
+_ = " " space
+words first char get capitalized
+
+
+example: :frost_gauntlet: = Frost Gauntlet
