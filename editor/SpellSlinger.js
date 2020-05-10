@@ -893,9 +893,9 @@ ApplicationMain.create = function(config) {
 	ManifestResources.init(config);
 	var _this = app.meta;
 	if(__map_reserved["build"] != null) {
-		_this.setReserved("build","127");
+		_this.setReserved("build","1");
 	} else {
-		_this.h["build"] = "127";
+		_this.h["build"] = "1";
 	}
 	var _this1 = app.meta;
 	if(__map_reserved["company"] != null) {
@@ -928,7 +928,7 @@ ApplicationMain.create = function(config) {
 		_this5.h["version"] = "1.0.0";
 	}
 	var attributes = { allowHighDPI : false, alwaysOnTop : false, borderless : false, element : null, frameRate : 60, height : 0, hidden : false, maximized : false, minimized : false, parameters : { }, resizable : true, title : "SpellSlinger", width : 0, x : null, y : null};
-	attributes.context = { antialiasing : 0, background : 13619151, colorDepth : 32, depth : true, hardware : true, stencil : true, type : null, vsync : false};
+	attributes.context = { antialiasing : 0, background : 0, colorDepth : 32, depth : true, hardware : true, stencil : true, type : null, vsync : false};
 	if(app.__window == null) {
 		if(config != null) {
 			var _g = 0;
@@ -4548,14 +4548,10 @@ var Main = function() {
 	this.buttons = [];
 	this.scale = 0;
 	this.setHeight = 1300;
-	this.boxes = [];
 	this.talentSpacing = 28;
 	this.talentHeight = 340;
 	this.talentWidth = 154;
 	this.talentY = 393;
-	this.talentRects = new openfl_display_Shape();
-	this.runeRect = new ui_Box(610,570,950,680);
-	this.gauntletRect = new ui_Box(610,400,950,510);
 	this.runeImage = [];
 	this.gauntletImage = [];
 	this.talentImages = [];
@@ -4568,22 +4564,43 @@ var Main = function() {
 	this.talentText = new ui_Text("Choose Talents:");
 	this.classText = new ui_Text("Choose Class:",true);
 	this.titleText = new ui_Text("Title:");
-	var _g = [];
-	_g.push(false);
-	_g.push(false);
-	_g.push(false);
-	_g.push(false);
-	_g.push(false);
-	_g.push(false);
-	this.talentSet = _g;
-	this.talentSelectionMap = new haxe_ds_StringMap();
+	this.talentLevel = [];
+	this.talentSet = [];
+	this.talentSelectBitmapData = null;
+	this.classSelector = new openfl_display_Bitmap();
+	this.background = new openfl_display_Bitmap();
+	var _gthis = this;
 	openfl_display_Sprite.call(this);
-	this.classRect = new ui_Box(0,165,950,350);
-	this.talentRects.get_graphics().beginFill(11579568);
-	this.talentRects.set_x(0);
-	this.talentRects.get_graphics().drawRect(0 * (this.talentWidth + this.talentSpacing),this.talentY,this.talentWidth,this.talentHeight);
-	this.talentRects.get_graphics().drawRect(this.talentWidth + this.talentSpacing,this.talentY,this.talentWidth,this.talentHeight);
-	this.talentRects.get_graphics().drawRect(2 * (this.talentWidth + this.talentSpacing),this.talentY,this.talentWidth,this.talentHeight);
+	openfl_utils_Assets.loadBitmapData("assets/ui/talent_selected.png").onComplete(function(bmd) {
+		_gthis.talentSelectBitmapData = bmd;
+	});
+	openfl_utils_Assets.loadBitmapData("assets/ui/background.png").onComplete(function(bmd1) {
+		_gthis.background.set_bitmapData(bmd1);
+		_gthis.resize(null);
+	});
+	this.addChild(this.background);
+	var boxClass = new openfl_display_Bitmap();
+	boxClass.set_x(-4);
+	boxClass.set_y(160);
+	this.addChild(boxClass);
+	openfl_utils_Assets.loadBitmapData("assets/ui/box_class.png").onComplete(function(bmd2) {
+		boxClass.set_bitmapData(bmd2);
+		var _g = boxClass;
+		_g.set_scaleX(_g.get_scaleX() * 1.2);
+		var _g1 = boxClass;
+		_g1.set_scaleY(_g1.get_scaleY() * 1.2);
+	});
+	var boxTalent = new openfl_display_Bitmap();
+	boxTalent.set_x(0);
+	boxTalent.set_y(360);
+	this.addChild(boxTalent);
+	openfl_utils_Assets.loadBitmapData("assets/ui/box_talents.png").onComplete(function(bmd3) {
+		boxTalent.set_bitmapData(bmd3);
+		var _g2 = boxTalent;
+		_g2.set_scaleX(_g2.get_scaleX() * 1.4);
+		var _g3 = boxTalent;
+		_g3.set_scaleY(_g3.get_scaleY() * 1.4);
+	});
 	this.titleInput.set_x(174);
 	this.titleInput.set_y(36);
 	this.titleInput.setWidth(660);
@@ -4609,13 +4626,6 @@ var Main = function() {
 	this.talentText.set_y(354);
 	this.displayCount.set_x(248);
 	this.displayCount.set_y(756);
-	this.classSelector = new openfl_display_Bitmap(openfl_utils_Assets.getBitmapData("assets/ui/class_selected.png"));
-	this.classSelector.set_width(this.classSelector.set_height(this.boxSize + 20));
-	this.classSelector.set_visible(false);
-	this.addChild(this.classRect);
-	this.addChild(this.talentRects);
-	this.addChild(this.gauntletRect);
-	this.addChild(this.runeRect);
 	this.addChild(this.titleInput);
 	this.addChild(this.descInput);
 	this.addChild(this.titleText);
@@ -4626,79 +4636,96 @@ var Main = function() {
 	this.addChild(this.talentText);
 	this.addChild(this.displayCount);
 	var bitmap = null;
-	var _g1 = 0;
-	var _g11 = this.classPaths.length;
-	while(_g1 < _g11) {
-		var i = _g1++;
-		bitmap = new openfl_display_Bitmap(openfl_utils_Assets.getBitmapData(this.classPaths[i]),null,false);
-		bitmap.set_width(bitmap.set_height(this.boxSize));
-		var button = new ui_Button();
-		button.set_x(this.classRect.get_x() + i * (this.boxSize + 20) + 60);
-		button.set_y(this.classRect.get_y() + 34);
-		button.type = 0;
-		button.level = i;
-		button.addChild(bitmap);
-		this.buttons.push(button);
-	}
-	var _g2 = 0;
-	var _g3 = this.mindPaths.length;
-	while(_g2 < _g3) {
-		var i1 = _g2++;
-		bitmap = new openfl_display_Bitmap(openfl_utils_Assets.getBitmapData(this.mindPaths[i1]),null,false);
-		bitmap.set_width(bitmap.set_height(this.circleSize));
-		var button1 = new ui_Button();
-		button1.set_x(this.talentRects.get_x() + (this.talentWidth - this.circleSize) / 2);
-		button1.set_y(406 + i1 * 60);
-		button1.type = 1;
-		button1.level = i1;
-		button1.addChild(bitmap);
-		this.buttons.push(button1);
-	}
 	var _g4 = 0;
+	var _g11 = this.classPaths.length;
+	while(_g4 < _g11) {
+		var i = _g4++;
+		var button = [new ui_Button()];
+		button[0].set_x(i * (this.boxSize + 20) + 60);
+		button[0].set_y(199);
+		button[0].type = 0;
+		button[0].level = i;
+		button[0].Click = $bind(this,this.buttonClick);
+		this.addChild(button[0]);
+		openfl_utils_Assets.loadBitmapData(this.classPaths[i]).onComplete((function(button1) {
+			return function(bmd4) {
+				bitmap = new openfl_display_Bitmap(bmd4,null,false);
+				var tmp = bitmap.set_height(_gthis.boxSize);
+				bitmap.set_width(tmp);
+				button1[0].addChild(bitmap);
+				_gthis.buttons.push(button1[0]);
+			};
+		})(button));
+	}
+	var _g21 = 0;
+	var _g31 = this.mindPaths.length;
+	while(_g21 < _g31) {
+		var i1 = _g21++;
+		var button2 = [new ui_Button()];
+		button2[0].set_x((this.talentWidth - this.circleSize) / 2);
+		button2[0].set_y(406 + i1 * 60);
+		button2[0].type = 1;
+		button2[0].level = i1;
+		button2[0].Click = $bind(this,this.buttonClick);
+		this.addChild(button2[0]);
+		openfl_utils_Assets.loadBitmapData(this.mindPaths[i1]).onComplete((function(button3) {
+			return function(bmd5) {
+				bitmap = new openfl_display_Bitmap(bmd5,null,false);
+				var tmp1 = bitmap.set_height(_gthis.circleSize);
+				bitmap.set_width(tmp1);
+				button3[0].addChild(bitmap);
+				_gthis.buttons.push(button3[0]);
+			};
+		})(button2));
+	}
+	var _g41 = 0;
 	var _g5 = this.bodyPaths.length;
-	while(_g4 < _g5) {
-		var i2 = _g4++;
-		bitmap = new openfl_display_Bitmap(openfl_utils_Assets.getBitmapData(this.bodyPaths[i2]),null,false);
-		bitmap.set_width(bitmap.set_height(this.circleSize));
-		var button2 = new ui_Button();
-		button2.set_x(190 + (this.talentWidth - this.circleSize) / 2);
-		button2.set_y(406 + i2 * 60);
-		button2.type = 2;
-		button2.level = i2;
-		button2.addChild(bitmap);
-		this.buttons.push(button2);
+	while(_g41 < _g5) {
+		var i2 = _g41++;
+		var button4 = [new ui_Button()];
+		button4[0].set_x(190 + (this.talentWidth - this.circleSize) / 2);
+		button4[0].set_y(406 + i2 * 60);
+		button4[0].type = 2;
+		button4[0].level = i2;
+		button4[0].Click = $bind(this,this.buttonClick);
+		this.addChild(button4[0]);
+		openfl_utils_Assets.loadBitmapData(this.bodyPaths[i2]).onComplete((function(button5) {
+			return function(bmd6) {
+				bitmap = new openfl_display_Bitmap(bmd6,null,false);
+				var tmp2 = bitmap.set_height(_gthis.circleSize);
+				bitmap.set_width(tmp2);
+				button5[0].addChild(bitmap);
+				_gthis.buttons.push(button5[0]);
+			};
+		})(button4));
 	}
 	var _g6 = 0;
 	var _g7 = this.spiritPaths.length;
 	while(_g6 < _g7) {
 		var i3 = _g6++;
-		bitmap = new openfl_display_Bitmap(openfl_utils_Assets.getBitmapData(this.spiritPaths[i3]),null,false);
-		bitmap.set_width(bitmap.set_height(this.circleSize));
-		var button3 = new ui_Button();
-		button3.set_x(388 + (this.talentWidth - this.circleSize) / 2);
-		button3.set_y(406 + i3 * 60);
-		button3.type = 3;
-		button3.level = i3;
-		button3.addChild(bitmap);
-		this.buttons.push(button3);
+		var button6 = [new ui_Button()];
+		button6[0].set_x(388 + (this.talentWidth - this.circleSize) / 2);
+		button6[0].set_y(406 + i3 * 60);
+		button6[0].type = 3;
+		button6[0].level = i3;
+		button6[0].Click = $bind(this,this.buttonClick);
+		this.addChild(button6[0]);
+		openfl_utils_Assets.loadBitmapData(this.spiritPaths[i3]).onComplete((function(button7) {
+			return function(bmd7) {
+				bitmap = new openfl_display_Bitmap(bmd7,null,false);
+				var tmp3 = bitmap.set_height(_gthis.circleSize);
+				bitmap.set_width(tmp3);
+				button7[0].addChild(bitmap);
+				_gthis.buttons.push(button7[0]);
+			};
+		})(button6));
 	}
-	var _g8 = 0;
-	var _g9 = this.buttons;
-	while(_g8 < _g9.length) {
-		var button4 = _g9[_g8];
-		++_g8;
-		button4.Click = $bind(this,this.buttonClick);
-		this.addChild(button4);
-	}
+	openfl_utils_Assets.loadBitmapData("assets/ui/class_selected.png").onComplete(function(bmd8) {
+		_gthis.classSelector.set_bitmapData(bmd8);
+		_gthis.classSelector.set_width(_gthis.classSelector.set_height(_gthis.boxSize + 20));
+		_gthis.classSelector.set_visible(false);
+	});
 	this.addChild(this.classSelector);
-	this.spellslinger1 = new openfl_display_Bitmap(openfl_utils_Assets.getBitmapData("assets/ui/spellslinger_selected.png"));
-	this.spellslinger2 = new openfl_display_Bitmap(openfl_utils_Assets.getBitmapData("assets/ui/spellslinger_selected.png"));
-	this.spellslinger1.set_x(856);
-	this.spellslinger1.set_y(410);
-	this.spellslinger2.set_x(746);
-	this.spellslinger2.set_y(586);
-	this.addChild(this.spellslinger1);
-	this.addChild(this.spellslinger2);
 	this.stage.addEventListener("resize",$bind(this,this.resize));
 	this.stage.addEventListener("mouseMove",$bind(this,this.mouseMove));
 	this.stage.addEventListener("click",$bind(this,this.mouseClick));
@@ -4708,9 +4735,11 @@ $hxClasses["Main"] = Main;
 Main.__name__ = "Main";
 Main.__super__ = openfl_display_Sprite;
 Main.prototype = $extend(openfl_display_Sprite.prototype,{
-	classSelector: null
-	,talentSelectionMap: null
+	background: null
+	,classSelector: null
+	,talentSelectBitmapData: null
 	,talentSet: null
+	,talentLevel: null
 	,titleText: null
 	,classText: null
 	,talentText: null
@@ -4724,15 +4753,10 @@ Main.prototype = $extend(openfl_display_Sprite.prototype,{
 	,gauntletImage: null
 	,runeImage: null
 	,title: null
-	,classRect: null
-	,gauntletRect: null
-	,runeRect: null
-	,talentRects: null
 	,talentY: null
 	,talentWidth: null
 	,talentHeight: null
 	,talentSpacing: null
-	,boxes: null
 	,setHeight: null
 	,scale: null
 	,buttons: null
@@ -4755,7 +4779,7 @@ Main.prototype = $extend(openfl_display_Sprite.prototype,{
 	,gauntletPaths: null
 	,buttonClick: function(e) {
 		var button = e.currentTarget;
-		haxe_Log.trace("type " + button.type + " level " + button.level,{ fileName : "src/Main.hx", lineNumber : 225, className : "Main", methodName : "buttonClick"});
+		haxe_Log.trace("type " + button.type + " level " + button.level,{ fileName : "src/Main.hx", lineNumber : 260, className : "Main", methodName : "buttonClick"});
 		switch(button.type) {
 		case 0:
 			this.classSelector.set_x(button.get_x() - 10);
@@ -4770,30 +4794,33 @@ Main.prototype = $extend(openfl_display_Sprite.prototype,{
 			break;
 		}
 		if(button.type > 0) {
-			var key = button.type + ":" + button.level;
-			var _this = this.talentSelectionMap;
-			var bitmap = __map_reserved[key] != null ? _this.getReserved(key) : _this.h[key];
+			var bitmap = this.talentSet[button.type];
 			if(bitmap != null) {
-				this.talentSet[button.type] = false;
-				this.removeChild(bitmap);
-				this.count += -this.resource(button.level);
-				this.talentSelectionMap.remove(button.type + ":" + button.level);
-				bitmap = null;
-			} else if(this.count + this.resource(button.level) <= this.total && !this.talentSet[button.type]) {
-				this.talentSet[button.type] = true;
-				this.count += this.resource(button.level);
-				var bitmap1 = new openfl_display_Bitmap(openfl_utils_Assets.getBitmapData("assets/ui/talent_selected.png"));
-				bitmap1.set_x(button.get_x());
-				bitmap1.set_y(button.get_y());
-				this.addChild(bitmap1);
-				var key1 = button.type + ":" + button.level;
-				var _this1 = this.talentSelectionMap;
-				if(__map_reserved[key1] != null) {
-					_this1.setReserved(key1,bitmap1);
-				} else {
-					_this1.h[key1] = bitmap1;
+				var newTotal = this.count - this.resource(this.talentLevel[button.type]) + this.resource(button.level);
+				haxe_Log.trace("newTotal " + newTotal,{ fileName : "src/Main.hx", lineNumber : 284, className : "Main", methodName : "buttonClick"});
+				if(newTotal > this.total) {
+					return;
 				}
+				this.count += -this.resource(this.talentLevel[button.type]);
+				if(this.talentLevel[button.type] == button.level) {
+					this.talentLevel[button.type] = 0;
+					this.talentSet[button.type] = null;
+					this.removeChild(bitmap);
+					bitmap = null;
+					this.displayCount.set_text(this.count + "/" + this.total);
+					return;
+				}
+			} else if(this.count + this.resource(button.level) <= this.total) {
+				bitmap = new openfl_display_Bitmap(this.talentSelectBitmapData);
+				this.addChild(bitmap);
+			} else {
+				return;
 			}
+			this.talentLevel[button.type] = button.level;
+			this.count += this.resource(this.talentLevel[button.type]);
+			this.talentSet[button.type] = bitmap;
+			bitmap.set_x(button.get_x());
+			bitmap.set_y(button.get_y());
 			this.displayCount.set_text(this.count + "/" + this.total);
 		}
 	}
@@ -4844,6 +4871,9 @@ Main.prototype = $extend(openfl_display_Sprite.prototype,{
 		this.set_y(this.py);
 		this.set_scaleX(this.scale);
 		this.set_scaleY(this.scale);
+		this.background.set_width(Main.setWidth * 1.5 / this.scale);
+		this.background.set_x(-this.px / this.scale + (this.stage.stageWidth / this.scale - this.background.get_width()) / 2);
+		this.background.set_height(this.stage.stageHeight / this.scale);
 	}
 	,__class__: Main
 });
@@ -5033,7 +5063,7 @@ ManifestResources.init = function(config) {
 		ManifestResources.rootPath = "./";
 	}
 	var bundle;
-	var data = "{\"name\":null,\"assets\":\"aoy4:pathy34:assets%2Fbackgrounds%2Fbg_fire.pngy4:sizei94213y4:typey5:IMAGEy2:idR1y7:preloadtgoR0y35:assets%2Fbackgrounds%2Fbg_frost.pngR2i86129R3R4R5R7R6tgoR0y39:assets%2Fbackgrounds%2Fbg_lightning.pngR2i71696R3R4R5R8R6tgoR0y35:assets%2Fbackgrounds%2Fbg_stone.pngR2i73522R3R4R5R9R6tgoR0y35:assets%2Fbackgrounds%2Fbg_toxic.pngR2i73327R3R4R5R10R6tgoR0y34:assets%2Fbackgrounds%2Fbg_wind.pngR2i81141R3R4R5R11R6tgoR0y31:assets%2Femotes%2Faccretion.pngR2i9584R3R4R5R12R6tgoR0y31:assets%2Femotes%2Favalanche.pngR2i9322R3R4R5R13R6tgoR0y29:assets%2Femotes%2Fbedrock.pngR2i12105R3R4R5R14R6tgoR0y33:assets%2Femotes%2Fbody_scroll.pngR2i7166R3R4R5R15R6tgoR0y33:assets%2Femotes%2Fboulderfall.pngR2i4767R3R4R5R16R6tgoR0y34:assets%2Femotes%2Fchronomaster.pngR2i6357R3R4R5R17R6tgoR0y29:assets%2Femotes%2Fcombust.pngR2i10525R3R4R5R18R6tgoR0y29:assets%2Femotes%2Fconduit.pngR2i27043R3R4R5R19R6tgoR0y35:assets%2Femotes%2Fconflagration.pngR2i11224R3R4R5R20R6tgoR0y26:assets%2Femotes%2Fdash.pngR2i5859R3R4R5R21R6tgoR0y31:assets%2Femotes%2Fdexterity.pngR2i6648R3R4R5R22R6tgoR0y29:assets%2Femotes%2Femotes.jsonR2i2206R3y4:TEXTR5R23R6tgoR0y30:assets%2Femotes%2Fescapist.pngR2i6430R3R4R5R25R6tgoR0y33:assets%2Femotes%2Ffeatherfall.pngR2i6385R3R4R5R26R6tgoR0y28:assets%2Femotes%2Ffervor.pngR2i6345R3R4R5R27R6tgoR0y37:assets%2Femotes%2Ffinders_keepers.pngR2i6645R3R4R5R28R6tgoR0y30:assets%2Femotes%2Ffireball.pngR2i3769R3R4R5R29R6tgoR0y29:assets%2Femotes%2Ffirefly.pngR2i11172R3R4R5R30R6tgoR0y35:assets%2Femotes%2Ffire_gauntlet.pngR2i6940R3R4R5R31R6tgoR0y31:assets%2Femotes%2Fflamewall.pngR2i3769R3R4R5R32R6tgoR0y34:assets%2Femotes%2Fflash_freeze.pngR2i2864R3R4R5R33R6tgoR0y28:assets%2Femotes%2Fflight.pngR2i6870R3R4R5R34R6tgoR0y34:assets%2Femotes%2Ffocused_mana.pngR2i6021R3R4R5R35R6tgoR0y31:assets%2Femotes%2Ffortitude.pngR2i6712R3R4R5R36R6tgoR0y31:assets%2Femotes%2Ffrostborn.pngR2i7272R3R4R5R37R6tgoR0y36:assets%2Femotes%2Ffrost_gauntlet.pngR2i6640R3R4R5R38R6tgoR0y37:assets%2Femotes%2Ffrozen_alacrity.pngR2i10555R3R4R5R39R6tgoR0y29:assets%2Femotes%2Fharmony.pngR2i6659R3R4R5R40R6tgoR0y31:assets%2Femotes%2Fice_lance.pngR2i2864R3R4R5R41R6tgoR0y31:assets%2Femotes%2Fice_prism.pngR2i10780R3R4R5R42R6tgoR0y28:assets%2Femotes%2Ficicle.pngR2i11073R3R4R5R43R6tgoR0y34:assets%2Femotes%2Finvisibility.pngR2i5947R3R4R5R44R6tgoR0y36:assets%2Femotes%2Flightning_bolt.pngR2i2722R3R4R5R45R6tgoR0y40:assets%2Femotes%2Flightning_gauntlet.pngR2i7385R3R4R5R46R6tgoR0y38:assets%2Femotes%2Flightning_strike.pngR2i2722R3R4R5R47R6tgoR0y33:assets%2Femotes%2Fmind_scroll.pngR2i7425R3R4R5R48R6tgoR0y30:assets%2Femotes%2Foutbreak.pngR2i11033R3R4R5R49R6tgoR0y30:assets%2Femotes%2Foverload.pngR2i9635R3R4R5R50R6tgoR0y38:assets%2Femotes%2Fpotential_energy.pngR2i12322R3R4R5R51R6tgoR0y33:assets%2Femotes%2Fpower_surge.pngR2i12649R3R4R5R52R6tgoR0y31:assets%2Femotes%2Fpyrolysis.pngR2i10833R3R4R5R53R6tgoR0y32:assets%2Femotes%2Fpyromancer.pngR2i25584R3R4R5R54R6tgoR0y34:assets%2Femotes%2Frecklessness.pngR2i5879R3R4R5R55R6tgoR0y30:assets%2Femotes%2Frecovery.pngR2i6350R3R4R5R56R6tgoR0y35:assets%2Femotes%2Frunic_fluency.pngR2i6590R3R4R5R57R6tgoR0y32:assets%2Femotes%2Fscavenging.pngR2i6733R3R4R5R58R6tgoR0y39:assets%2Femotes%2Fsecondary_strikes.pngR2i11230R3R4R5R59R6tgoR0y32:assets%2Femotes%2Fshadowstep.pngR2i6488R3R4R5R60R6tgoR0y31:assets%2Femotes%2Fshockwave.pngR2i4767R3R4R5R61R6tgoR0y34:assets%2Femotes%2Fspellslinger.pngR2i6048R3R4R5R62R6tgoR0y35:assets%2Femotes%2Fspirit_scroll.pngR2i6910R3R4R5R63R6tgoR0y40:assets%2Femotes%2Fspreading_sickness.pngR2i8908R3R4R5R64R6tgoR0y32:assets%2Femotes%2Fspringstep.pngR2i6481R3R4R5R65R6tgoR0y28:assets%2Femotes%2Fsquall.pngR2i10783R3R4R5R66R6tgoR0y33:assets%2Femotes%2Fstoneshaper.pngR2i32716R3R4R5R67R6tgoR0y31:assets%2Femotes%2Fstoneskin.pngR2i10406R3R4R5R68R6tgoR0y36:assets%2Femotes%2Fstone_gauntlet.pngR2i7350R3R4R5R69R6tgoR0y33:assets%2Femotes%2Fsudden_gust.pngR2i11084R3R4R5R70R6tgoR0y30:assets%2Femotes%2Fteleport.pngR2i6962R3R4R5R71R6tgoR0y29:assets%2Femotes%2Ftempest.pngR2i28095R3R4R5R72R6tgoR0y29:assets%2Femotes%2Fthirsty.pngR2i6617R3R4R5R73R6tgoR0y29:assets%2Femotes%2Ftornado.pngR2i4040R3R4R5R74R6tgoR0y34:assets%2Femotes%2Ftoxicologist.pngR2i32596R3R4R5R75R6tgoR0y33:assets%2Femotes%2Ftoxic_cloud.pngR2i2861R3R4R5R76R6tgoR0y36:assets%2Femotes%2Ftoxic_gauntlet.pngR2i7076R3R4R5R77R6tgoR0y33:assets%2Femotes%2Ftoxic_spray.pngR2i2861R3R4R5R78R6tgoR0y30:assets%2Femotes%2Ftracking.pngR2i6988R3R4R5R79R6tgoR0y28:assets%2Femotes%2Ftundra.pngR2i10964R3R4R5R80R6tgoR0y29:assets%2Femotes%2Fupdraft.pngR2i10297R3R4R5R81R6tgoR0y37:assets%2Femotes%2Fvanishing_mists.pngR2i11500R3R4R5R82R6tgoR0y31:assets%2Femotes%2Fviscosity.pngR2i10423R3R4R5R83R6tgoR0y33:assets%2Femotes%2Fvital_stone.pngR2i6619R3R4R5R84R6tgoR0y35:assets%2Femotes%2Fwind_gauntlet.pngR2i7303R3R4R5R85R6tgoR0y32:assets%2Femotes%2Fwind_shear.pngR2i4040R3R4R5R86R6tgoR0y32:assets%2Femotes%2Fwind_surge.pngR2i11551R3R4R5R87R6tgoR0y36:assets%2Femotes%2Fwolf%27s_blood.pngR2i6614R3R4R5R88R6tgoR0y32:assets%2Ffrost%2Fclass_frost.pngR2i35881R3R4R5R89R6tgoR0y30:assets%2Ffrost%2Fgt_frost1.pngR2i6411R3R4R5R90R6tgoR0y30:assets%2Ffrost%2Fgt_frost2.pngR2i6213R3R4R5R91R6tgoR0y30:assets%2Ffrost%2Fgt_frost3.pngR2i6539R3R4R5R92R6tgoR0y30:assets%2Ffrost%2Fgt_frost4.pngR2i7146R3R4R5R93R6tgoR0y30:assets%2Ffrost%2Fgt_frost5.pngR2i6640R3R4R5R94R6tgoR0y31:assets%2Ffrost%2Ficon_frost.pngR2i2864R3R4R5R95R6tgoR0y30:assets%2Ffrost%2Fsk_frost1.pngR2i10555R3R4R5R96R6tgoR0y30:assets%2Ffrost%2Fsk_frost2.pngR2i11073R3R4R5R97R6tgoR0y30:assets%2Ffrost%2Fsk_frost3.pngR2i10964R3R4R5R98R6tgoR0y30:assets%2Ffrost%2Fsk_frost4.pngR2i10780R3R4R5R99R6tgoR0y31:assets%2Fimages%2Fbio-photo.jpgR2i1661R3R4R5R100R6tgoR0y32:assets%2Fitems%2Fscroll_body.pngR2i7166R3R4R5R101R6tgoR0y32:assets%2Fitems%2Fscroll_mind.pngR2i7425R3R4R5R102R6tgoR0y34:assets%2Fitems%2Fscroll_spirit.pngR2i6910R3R4R5R103R6tgoR0y40:assets%2Flightning%2Fclass_lightning.pngR2i27043R3R4R5R104R6tgoR0y38:assets%2Flightning%2Fgt_lightning1.pngR2i6613R3R4R5R105R6tgoR0y38:assets%2Flightning%2Fgt_lightning2.pngR2i6394R3R4R5R106R6tgoR0y38:assets%2Flightning%2Fgt_lightning3.pngR2i6643R3R4R5R107R6tgoR0y38:assets%2Flightning%2Fgt_lightning4.pngR2i7260R3R4R5R108R6tgoR0y38:assets%2Flightning%2Fgt_lightning5.pngR2i7385R3R4R5R109R6tgoR0y39:assets%2Flightning%2Ficon_lightning.pngR2i2722R3R4R5R110R6tgoR0y38:assets%2Flightning%2Fsk_lightning1.pngR2i12322R3R4R5R111R6tgoR0y38:assets%2Flightning%2Fsk_lightning2.pngR2i9635R3R4R5R112R6tgoR0y38:assets%2Flightning%2Fsk_lightning3.pngR2i12649R3R4R5R113R6tgoR0y38:assets%2Flightning%2Fsk_lightning4.pngR2i11230R3R4R5R114R6tgoR0y30:assets%2Fpyro%2Fclass_fire.pngR2i25584R3R4R5R115R6tgoR0y28:assets%2Fpyro%2Fgt_fire1.pngR2i6085R3R4R5R116R6tgoR0y28:assets%2Fpyro%2Fgt_fire2.pngR2i6285R3R4R5R117R6tgoR0y28:assets%2Fpyro%2Fgt_fire3.pngR2i6420R3R4R5R118R6tgoR0y28:assets%2Fpyro%2Fgt_fire4.pngR2i6764R3R4R5R119R6tgoR0y28:assets%2Fpyro%2Fgt_fire5.pngR2i6940R3R4R5R120R6tgoR0y29:assets%2Fpyro%2Ficon_fire.pngR2i3769R3R4R5R121R6tgoR0y28:assets%2Fpyro%2Fsk_fire1.pngR2i10525R3R4R5R122R6tgoR0y28:assets%2Fpyro%2Fsk_fire2.pngR2i11172R3R4R5R123R6tgoR0y28:assets%2Fpyro%2Fsk_fire3.pngR2i10833R3R4R5R124R6tgoR0y28:assets%2Fpyro%2Fsk_fire4.pngR2i11224R3R4R5R125R6tgoR0y38:assets%2Frunes%2Frune_chronomaster.pngR2i6357R3R4R5R126R6tgoR0y30:assets%2Frunes%2Frune_dash.pngR2i5859R3R4R5R127R6tgoR0y37:assets%2Frunes%2Frune_featherfall.pngR2i6385R3R4R5R128R6tgoR0y32:assets%2Frunes%2Frune_flight.pngR2i6870R3R4R5R129R6tgoR0y38:assets%2Frunes%2Frune_invisibility.pngR2i5947R3R4R5R130R6tgoR0y36:assets%2Frunes%2Frune_shadowstep.pngR2i6488R3R4R5R131R6tgoR0y36:assets%2Frunes%2Frune_springstep.pngR2i6481R3R4R5R132R6tgoR0y34:assets%2Frunes%2Frune_teleport.pngR2i6962R3R4R5R133R6tgoR0y36:assets%2Frunes%2Frune_wolfsblood.pngR2i6614R3R4R5R134R6tgoR0y32:assets%2Fstone%2Fclass_stone.pngR2i32716R3R4R5R135R6tgoR0y30:assets%2Fstone%2Fgt_stone1.pngR2i6903R3R4R5R136R6tgoR0y30:assets%2Fstone%2Fgt_stone2.pngR2i6776R3R4R5R137R6tgoR0y30:assets%2Fstone%2Fgt_stone3.pngR2i6903R3R4R5R138R6tgoR0y30:assets%2Fstone%2Fgt_stone4.pngR2i6793R3R4R5R139R6tgoR0y30:assets%2Fstone%2Fgt_stone5.pngR2i7350R3R4R5R140R6tgoR0y31:assets%2Fstone%2Ficon_stone.pngR2i4767R3R4R5R141R6tgoR0y30:assets%2Fstone%2Fsk_stone1.pngR2i10406R3R4R5R142R6tgoR0y30:assets%2Fstone%2Fsk_stone2.pngR2i12105R3R4R5R143R6tgoR0y30:assets%2Fstone%2Fsk_stone3.pngR2i9322R3R4R5R144R6tgoR0y30:assets%2Fstone%2Fsk_stone4.pngR2i9584R3R4R5R145R6tgoR0y35:assets%2Ftalents%2Fbt_dexterity.pngR2i6648R3R4R5R146R6tgoR0y32:assets%2Ftalents%2Fbt_fervor.pngR2i6345R3R4R5R147R6tgoR0y40:assets%2Ftalents%2Fbt_finderskeepers.pngR2i6645R3R4R5R148R6tgoR0y35:assets%2Ftalents%2Fbt_fortitude.pngR2i6712R3R4R5R149R6tgoR0y36:assets%2Ftalents%2Fbt_scavenging.pngR2i6733R3R4R5R150R6tgoR0y37:assets%2Ftalents%2Fmt_focusedmana.pngR2i6021R3R4R5R151R6tgoR0y33:assets%2Ftalents%2Fmt_harmony.pngR2i6659R3R4R5R152R6tgoR0y38:assets%2Ftalents%2Fmt_runicfluency.pngR2i6590R3R4R5R153R6tgoR0y38:assets%2Ftalents%2Fmt_spellslinger.pngR2i6048R3R4R5R154R6tgoR0y34:assets%2Ftalents%2Fmt_tracking.pngR2i6988R3R4R5R155R6tgoR0y34:assets%2Ftalents%2Fst_escapist.pngR2i6430R3R4R5R156R6tgoR0y38:assets%2Ftalents%2Fst_recklessness.pngR2i5879R3R4R5R157R6tgoR0y34:assets%2Ftalents%2Fst_recovery.pngR2i6350R3R4R5R158R6tgoR0y33:assets%2Ftalents%2Fst_thirsty.pngR2i6617R3R4R5R159R6tgoR0y36:assets%2Ftalents%2Fst_vitalstone.pngR2i6619R3R4R5R160R6tgoR0y32:assets%2Ftoxic%2Fclass_toxic.pngR2i32596R3R4R5R161R6tgoR0y30:assets%2Ftoxic%2Fgt_toxic1.pngR2i6565R3R4R5R162R6tgoR0y30:assets%2Ftoxic%2Fgt_toxic2.pngR2i6325R3R4R5R163R6tgoR0y30:assets%2Ftoxic%2Fgt_toxic3.pngR2i6747R3R4R5R164R6tgoR0y30:assets%2Ftoxic%2Fgt_toxic4.pngR2i6916R3R4R5R165R6tgoR0y30:assets%2Ftoxic%2Fgt_toxic5.pngR2i7076R3R4R5R166R6tgoR0y31:assets%2Ftoxic%2Ficon_toxic.pngR2i2861R3R4R5R167R6tgoR0y30:assets%2Ftoxic%2Fsk_toxic1.pngR2i10423R3R4R5R168R6tgoR0y30:assets%2Ftoxic%2Fsk_toxic2.pngR2i11500R3R4R5R169R6tgoR0y30:assets%2Ftoxic%2Fsk_toxic3.pngR2i11033R3R4R5R170R6tgoR0y30:assets%2Ftoxic%2Fsk_toxic4.pngR2i8908R3R4R5R171R6tgoR0y32:assets%2Fui%2Fclass_selected.pngR2i3434R3R4R5R172R6tgoR0y32:assets%2Fui%2Flocked_overlay.pngR2i1468R3R4R5R173R6tgoR0y39:assets%2Fui%2Fspellslinger_selected.pngR2i3292R3R4R5R174R6tgoR0y33:assets%2Fui%2Ftalent_selected.pngR2i1218R3R4R5R175R6tgoR0y30:assets%2Fwind%2Fclass_wind.pngR2i28095R3R4R5R176R6tgoR0y28:assets%2Fwind%2Fgt_wind1.pngR2i6711R3R4R5R177R6tgoR0y28:assets%2Fwind%2Fgt_wind2.pngR2i6568R3R4R5R178R6tgoR0y28:assets%2Fwind%2Fgt_wind3.pngR2i6906R3R4R5R179R6tgoR0y28:assets%2Fwind%2Fgt_wind4.pngR2i7321R3R4R5R180R6tgoR0y28:assets%2Fwind%2Fgt_wind5.pngR2i7303R3R4R5R181R6tgoR0y29:assets%2Fwind%2Ficon_wind.pngR2i4040R3R4R5R182R6tgoR0y28:assets%2Fwind%2Fsk_wind1.pngR2i11551R3R4R5R183R6tgoR0y28:assets%2Fwind%2Fsk_wind2.pngR2i10297R3R4R5R184R6tgoR0y28:assets%2Fwind%2Fsk_wind3.pngR2i10783R3R4R5R185R6tgoR0y28:assets%2Fwind%2Fsk_wind4.pngR2i11084R3R4R5R186R6tgh\",\"rootPath\":null,\"version\":2,\"libraryArgs\":[],\"libraryType\":null}";
+	var data = "{\"name\":null,\"assets\":\"aoy4:pathy34:assets%2Fbackgrounds%2Fbg_fire.pngy4:sizei94213y4:typey5:IMAGEy2:idR1goR0y35:assets%2Fbackgrounds%2Fbg_frost.pngR2i86129R3R4R5R6goR0y39:assets%2Fbackgrounds%2Fbg_lightning.pngR2i71696R3R4R5R7goR0y35:assets%2Fbackgrounds%2Fbg_stone.pngR2i73522R3R4R5R8goR0y35:assets%2Fbackgrounds%2Fbg_toxic.pngR2i73327R3R4R5R9goR0y34:assets%2Fbackgrounds%2Fbg_wind.pngR2i81141R3R4R5R10goR0y31:assets%2Femotes%2Faccretion.pngR2i9584R3R4R5R11goR0y31:assets%2Femotes%2Favalanche.pngR2i9322R3R4R5R12goR0y29:assets%2Femotes%2Fbedrock.pngR2i12105R3R4R5R13goR0y33:assets%2Femotes%2Fbody_scroll.pngR2i7166R3R4R5R14goR0y33:assets%2Femotes%2Fboulderfall.pngR2i4767R3R4R5R15goR0y34:assets%2Femotes%2Fchronomaster.pngR2i6357R3R4R5R16goR0y29:assets%2Femotes%2Fcombust.pngR2i10525R3R4R5R17goR0y29:assets%2Femotes%2Fconduit.pngR2i27043R3R4R5R18goR0y35:assets%2Femotes%2Fconflagration.pngR2i11224R3R4R5R19goR0y26:assets%2Femotes%2Fdash.pngR2i5859R3R4R5R20goR0y31:assets%2Femotes%2Fdexterity.pngR2i6648R3R4R5R21goR0y29:assets%2Femotes%2Femotes.jsonR2i2206R3y4:TEXTR5R22goR0y30:assets%2Femotes%2Fescapist.pngR2i6430R3R4R5R24goR0y33:assets%2Femotes%2Ffeatherfall.pngR2i6385R3R4R5R25goR0y28:assets%2Femotes%2Ffervor.pngR2i6345R3R4R5R26goR0y37:assets%2Femotes%2Ffinders_keepers.pngR2i6645R3R4R5R27goR0y30:assets%2Femotes%2Ffireball.pngR2i3769R3R4R5R28goR0y29:assets%2Femotes%2Ffirefly.pngR2i11172R3R4R5R29goR0y35:assets%2Femotes%2Ffire_gauntlet.pngR2i6940R3R4R5R30goR0y31:assets%2Femotes%2Fflamewall.pngR2i3769R3R4R5R31goR0y34:assets%2Femotes%2Fflash_freeze.pngR2i2864R3R4R5R32goR0y28:assets%2Femotes%2Fflight.pngR2i6870R3R4R5R33goR0y34:assets%2Femotes%2Ffocused_mana.pngR2i6021R3R4R5R34goR0y31:assets%2Femotes%2Ffortitude.pngR2i6712R3R4R5R35goR0y31:assets%2Femotes%2Ffrostborn.pngR2i7272R3R4R5R36goR0y36:assets%2Femotes%2Ffrost_gauntlet.pngR2i6640R3R4R5R37goR0y37:assets%2Femotes%2Ffrozen_alacrity.pngR2i10555R3R4R5R38goR0y29:assets%2Femotes%2Fharmony.pngR2i6659R3R4R5R39goR0y31:assets%2Femotes%2Fice_lance.pngR2i2864R3R4R5R40goR0y31:assets%2Femotes%2Fice_prism.pngR2i10780R3R4R5R41goR0y28:assets%2Femotes%2Ficicle.pngR2i11073R3R4R5R42goR0y34:assets%2Femotes%2Finvisibility.pngR2i5947R3R4R5R43goR0y36:assets%2Femotes%2Flightning_bolt.pngR2i2722R3R4R5R44goR0y40:assets%2Femotes%2Flightning_gauntlet.pngR2i7385R3R4R5R45goR0y38:assets%2Femotes%2Flightning_strike.pngR2i2722R3R4R5R46goR0y33:assets%2Femotes%2Fmind_scroll.pngR2i7425R3R4R5R47goR0y30:assets%2Femotes%2Foutbreak.pngR2i11033R3R4R5R48goR0y30:assets%2Femotes%2Foverload.pngR2i9635R3R4R5R49goR0y38:assets%2Femotes%2Fpotential_energy.pngR2i12322R3R4R5R50goR0y33:assets%2Femotes%2Fpower_surge.pngR2i12649R3R4R5R51goR0y31:assets%2Femotes%2Fpyrolysis.pngR2i10833R3R4R5R52goR0y32:assets%2Femotes%2Fpyromancer.pngR2i25584R3R4R5R53goR0y34:assets%2Femotes%2Frecklessness.pngR2i5879R3R4R5R54goR0y30:assets%2Femotes%2Frecovery.pngR2i6350R3R4R5R55goR0y35:assets%2Femotes%2Frunic_fluency.pngR2i6590R3R4R5R56goR0y32:assets%2Femotes%2Fscavenging.pngR2i6733R3R4R5R57goR0y39:assets%2Femotes%2Fsecondary_strikes.pngR2i11230R3R4R5R58goR0y32:assets%2Femotes%2Fshadowstep.pngR2i6488R3R4R5R59goR0y31:assets%2Femotes%2Fshockwave.pngR2i4767R3R4R5R60goR0y34:assets%2Femotes%2Fspellslinger.pngR2i6048R3R4R5R61goR0y35:assets%2Femotes%2Fspirit_scroll.pngR2i6910R3R4R5R62goR0y40:assets%2Femotes%2Fspreading_sickness.pngR2i8908R3R4R5R63goR0y32:assets%2Femotes%2Fspringstep.pngR2i6481R3R4R5R64goR0y28:assets%2Femotes%2Fsquall.pngR2i10783R3R4R5R65goR0y33:assets%2Femotes%2Fstoneshaper.pngR2i32716R3R4R5R66goR0y31:assets%2Femotes%2Fstoneskin.pngR2i10406R3R4R5R67goR0y36:assets%2Femotes%2Fstone_gauntlet.pngR2i7350R3R4R5R68goR0y33:assets%2Femotes%2Fsudden_gust.pngR2i11084R3R4R5R69goR0y30:assets%2Femotes%2Fteleport.pngR2i6962R3R4R5R70goR0y29:assets%2Femotes%2Ftempest.pngR2i28095R3R4R5R71goR0y29:assets%2Femotes%2Fthirsty.pngR2i6617R3R4R5R72goR0y29:assets%2Femotes%2Ftornado.pngR2i4040R3R4R5R73goR0y34:assets%2Femotes%2Ftoxicologist.pngR2i32596R3R4R5R74goR0y33:assets%2Femotes%2Ftoxic_cloud.pngR2i2861R3R4R5R75goR0y36:assets%2Femotes%2Ftoxic_gauntlet.pngR2i7076R3R4R5R76goR0y33:assets%2Femotes%2Ftoxic_spray.pngR2i2861R3R4R5R77goR0y30:assets%2Femotes%2Ftracking.pngR2i6988R3R4R5R78goR0y28:assets%2Femotes%2Ftundra.pngR2i10964R3R4R5R79goR0y29:assets%2Femotes%2Fupdraft.pngR2i10297R3R4R5R80goR0y37:assets%2Femotes%2Fvanishing_mists.pngR2i11500R3R4R5R81goR0y31:assets%2Femotes%2Fviscosity.pngR2i10423R3R4R5R82goR0y33:assets%2Femotes%2Fvital_stone.pngR2i6619R3R4R5R83goR0y35:assets%2Femotes%2Fwind_gauntlet.pngR2i7303R3R4R5R84goR0y32:assets%2Femotes%2Fwind_shear.pngR2i4040R3R4R5R85goR0y32:assets%2Femotes%2Fwind_surge.pngR2i11551R3R4R5R86goR0y36:assets%2Femotes%2Fwolf%27s_blood.pngR2i6614R3R4R5R87goR0y32:assets%2Ffrost%2Fclass_frost.pngR2i35881R3R4R5R88goR0y30:assets%2Ffrost%2Fgt_frost1.pngR2i6411R3R4R5R89goR0y30:assets%2Ffrost%2Fgt_frost2.pngR2i6213R3R4R5R90goR0y30:assets%2Ffrost%2Fgt_frost3.pngR2i6539R3R4R5R91goR0y30:assets%2Ffrost%2Fgt_frost4.pngR2i7146R3R4R5R92goR0y30:assets%2Ffrost%2Fgt_frost5.pngR2i6640R3R4R5R93goR0y31:assets%2Ffrost%2Ficon_frost.pngR2i2864R3R4R5R94goR0y30:assets%2Ffrost%2Fsk_frost1.pngR2i10555R3R4R5R95goR0y30:assets%2Ffrost%2Fsk_frost2.pngR2i11073R3R4R5R96goR0y30:assets%2Ffrost%2Fsk_frost3.pngR2i10964R3R4R5R97goR0y30:assets%2Ffrost%2Fsk_frost4.pngR2i10780R3R4R5R98goR0y31:assets%2Fimages%2Fbio-photo.jpgR2i1661R3R4R5R99goR0y32:assets%2Fitems%2Fscroll_body.pngR2i7166R3R4R5R100goR0y32:assets%2Fitems%2Fscroll_mind.pngR2i7425R3R4R5R101goR0y34:assets%2Fitems%2Fscroll_spirit.pngR2i6910R3R4R5R102goR0y40:assets%2Flightning%2Fclass_lightning.pngR2i27043R3R4R5R103goR0y38:assets%2Flightning%2Fgt_lightning1.pngR2i6613R3R4R5R104goR0y38:assets%2Flightning%2Fgt_lightning2.pngR2i6394R3R4R5R105goR0y38:assets%2Flightning%2Fgt_lightning3.pngR2i6643R3R4R5R106goR0y38:assets%2Flightning%2Fgt_lightning4.pngR2i7260R3R4R5R107goR0y38:assets%2Flightning%2Fgt_lightning5.pngR2i7385R3R4R5R108goR0y39:assets%2Flightning%2Ficon_lightning.pngR2i2722R3R4R5R109goR0y38:assets%2Flightning%2Fsk_lightning1.pngR2i12322R3R4R5R110goR0y38:assets%2Flightning%2Fsk_lightning2.pngR2i9635R3R4R5R111goR0y38:assets%2Flightning%2Fsk_lightning3.pngR2i12649R3R4R5R112goR0y38:assets%2Flightning%2Fsk_lightning4.pngR2i11230R3R4R5R113goR0y30:assets%2Fpyro%2Fclass_fire.pngR2i25584R3R4R5R114goR0y28:assets%2Fpyro%2Fgt_fire1.pngR2i6085R3R4R5R115goR0y28:assets%2Fpyro%2Fgt_fire2.pngR2i6285R3R4R5R116goR0y28:assets%2Fpyro%2Fgt_fire3.pngR2i6420R3R4R5R117goR0y28:assets%2Fpyro%2Fgt_fire4.pngR2i6764R3R4R5R118goR0y28:assets%2Fpyro%2Fgt_fire5.pngR2i6940R3R4R5R119goR0y29:assets%2Fpyro%2Ficon_fire.pngR2i3769R3R4R5R120goR0y28:assets%2Fpyro%2Fsk_fire1.pngR2i10525R3R4R5R121goR0y28:assets%2Fpyro%2Fsk_fire2.pngR2i11172R3R4R5R122goR0y28:assets%2Fpyro%2Fsk_fire3.pngR2i10833R3R4R5R123goR0y28:assets%2Fpyro%2Fsk_fire4.pngR2i11224R3R4R5R124goR0y38:assets%2Frunes%2Frune_chronomaster.pngR2i6357R3R4R5R125goR0y30:assets%2Frunes%2Frune_dash.pngR2i5859R3R4R5R126goR0y37:assets%2Frunes%2Frune_featherfall.pngR2i6385R3R4R5R127goR0y32:assets%2Frunes%2Frune_flight.pngR2i6870R3R4R5R128goR0y38:assets%2Frunes%2Frune_invisibility.pngR2i5947R3R4R5R129goR0y36:assets%2Frunes%2Frune_shadowstep.pngR2i6488R3R4R5R130goR0y36:assets%2Frunes%2Frune_springstep.pngR2i6481R3R4R5R131goR0y34:assets%2Frunes%2Frune_teleport.pngR2i6962R3R4R5R132goR0y36:assets%2Frunes%2Frune_wolfsblood.pngR2i6614R3R4R5R133goR0y32:assets%2Fstone%2Fclass_stone.pngR2i32716R3R4R5R134goR0y30:assets%2Fstone%2Fgt_stone1.pngR2i6903R3R4R5R135goR0y30:assets%2Fstone%2Fgt_stone2.pngR2i6776R3R4R5R136goR0y30:assets%2Fstone%2Fgt_stone3.pngR2i6903R3R4R5R137goR0y30:assets%2Fstone%2Fgt_stone4.pngR2i6793R3R4R5R138goR0y30:assets%2Fstone%2Fgt_stone5.pngR2i7350R3R4R5R139goR0y31:assets%2Fstone%2Ficon_stone.pngR2i4767R3R4R5R140goR0y30:assets%2Fstone%2Fsk_stone1.pngR2i10406R3R4R5R141goR0y30:assets%2Fstone%2Fsk_stone2.pngR2i12105R3R4R5R142goR0y30:assets%2Fstone%2Fsk_stone3.pngR2i9322R3R4R5R143goR0y30:assets%2Fstone%2Fsk_stone4.pngR2i9584R3R4R5R144goR0y35:assets%2Ftalents%2Fbt_dexterity.pngR2i6648R3R4R5R145goR0y32:assets%2Ftalents%2Fbt_fervor.pngR2i6345R3R4R5R146goR0y40:assets%2Ftalents%2Fbt_finderskeepers.pngR2i6645R3R4R5R147goR0y35:assets%2Ftalents%2Fbt_fortitude.pngR2i6712R3R4R5R148goR0y36:assets%2Ftalents%2Fbt_scavenging.pngR2i6733R3R4R5R149goR0y37:assets%2Ftalents%2Fmt_focusedmana.pngR2i6021R3R4R5R150goR0y33:assets%2Ftalents%2Fmt_harmony.pngR2i6659R3R4R5R151goR0y38:assets%2Ftalents%2Fmt_runicfluency.pngR2i6590R3R4R5R152goR0y38:assets%2Ftalents%2Fmt_spellslinger.pngR2i6048R3R4R5R153goR0y34:assets%2Ftalents%2Fmt_tracking.pngR2i6988R3R4R5R154goR0y34:assets%2Ftalents%2Fst_escapist.pngR2i6430R3R4R5R155goR0y38:assets%2Ftalents%2Fst_recklessness.pngR2i5879R3R4R5R156goR0y34:assets%2Ftalents%2Fst_recovery.pngR2i6350R3R4R5R157goR0y33:assets%2Ftalents%2Fst_thirsty.pngR2i6617R3R4R5R158goR0y36:assets%2Ftalents%2Fst_vitalstone.pngR2i6619R3R4R5R159goR0y32:assets%2Ftoxic%2Fclass_toxic.pngR2i32596R3R4R5R160goR0y30:assets%2Ftoxic%2Fgt_toxic1.pngR2i6565R3R4R5R161goR0y30:assets%2Ftoxic%2Fgt_toxic2.pngR2i6325R3R4R5R162goR0y30:assets%2Ftoxic%2Fgt_toxic3.pngR2i6747R3R4R5R163goR0y30:assets%2Ftoxic%2Fgt_toxic4.pngR2i6916R3R4R5R164goR0y30:assets%2Ftoxic%2Fgt_toxic5.pngR2i7076R3R4R5R165goR0y31:assets%2Ftoxic%2Ficon_toxic.pngR2i2861R3R4R5R166goR0y30:assets%2Ftoxic%2Fsk_toxic1.pngR2i10423R3R4R5R167goR0y30:assets%2Ftoxic%2Fsk_toxic2.pngR2i11500R3R4R5R168goR0y30:assets%2Ftoxic%2Fsk_toxic3.pngR2i11033R3R4R5R169goR0y30:assets%2Ftoxic%2Fsk_toxic4.pngR2i8908R3R4R5R170goR0y28:assets%2Fui%2Fbackground.pngR2i1401320R3R4R5R171goR0y27:assets%2Fui%2Fbox_class.pngR2i80762R3R4R5R172goR0y29:assets%2Fui%2Fbox_talents.pngR2i70801R3R4R5R173goR0y32:assets%2Fui%2Fclass_selected.pngR2i3434R3R4R5R174goR0y32:assets%2Fui%2Flocked_overlay.pngR2i1468R3R4R5R175goR0y39:assets%2Fui%2Fspellslinger_selected.pngR2i3292R3R4R5R176goR0y33:assets%2Fui%2Ftalent_selected.pngR2i1218R3R4R5R177goR0y30:assets%2Fwind%2Fclass_wind.pngR2i28095R3R4R5R178goR0y28:assets%2Fwind%2Fgt_wind1.pngR2i6711R3R4R5R179goR0y28:assets%2Fwind%2Fgt_wind2.pngR2i6568R3R4R5R180goR0y28:assets%2Fwind%2Fgt_wind3.pngR2i6906R3R4R5R181goR0y28:assets%2Fwind%2Fgt_wind4.pngR2i7321R3R4R5R182goR0y28:assets%2Fwind%2Fgt_wind5.pngR2i7303R3R4R5R183goR0y29:assets%2Fwind%2Ficon_wind.pngR2i4040R3R4R5R184goR0y28:assets%2Fwind%2Fsk_wind1.pngR2i11551R3R4R5R185goR0y28:assets%2Fwind%2Fsk_wind2.pngR2i10297R3R4R5R186goR0y28:assets%2Fwind%2Fsk_wind3.pngR2i10783R3R4R5R187goR0y28:assets%2Fwind%2Fsk_wind4.pngR2i11084R3R4R5R188gh\",\"rootPath\":null,\"version\":2,\"libraryArgs\":[],\"libraryType\":null}";
 	var manifest = lime_utils_AssetManifest.parse(data,ManifestResources.rootPath);
 	var library = lime_utils_AssetLibrary.fromManifest(manifest);
 	lime_utils_Assets.registerLibrary("default",library);
@@ -24197,7 +24227,7 @@ var lime_utils_AssetCache = function() {
 	this.audio = new haxe_ds_StringMap();
 	this.font = new haxe_ds_StringMap();
 	this.image = new haxe_ds_StringMap();
-	this.version = 950092;
+	this.version = 52026;
 };
 $hxClasses["lime.utils.AssetCache"] = lime_utils_AssetCache;
 lime_utils_AssetCache.__name__ = "lime.utils.AssetCache";
@@ -73290,19 +73320,6 @@ haxe_lang_Iterable.prototype = {
 	iterator: null
 	,__class__: haxe_lang_Iterable
 };
-var ui_Box = function(x,y,ex,ey) {
-	openfl_display_Shape.call(this);
-	this.set_x(x);
-	this.set_y(y);
-	this.get_graphics().beginFill(11579568);
-	this.get_graphics().drawRect(0,0,ex - x,ey - y);
-};
-$hxClasses["ui.Box"] = ui_Box;
-ui_Box.__name__ = "ui.Box";
-ui_Box.__super__ = openfl_display_Shape;
-ui_Box.prototype = $extend(openfl_display_Shape.prototype,{
-	__class__: ui_Box
-});
 var ui_Button = function() {
 	this.level = 0;
 	this.type = 0;
@@ -73402,7 +73419,7 @@ var ui_Text = function(value,center) {
 	this.set_height(40);
 	this.mouseEnabled = false;
 	this.set_selectable(false);
-	this.set_defaultTextFormat(new openfl_text_TextFormat(null,24,0,true,null,null,null,null,center ? 0 : 3));
+	this.set_defaultTextFormat(new openfl_text_TextFormat(null,24,16777215,true,null,null,null,null,center ? 0 : 3));
 	this.set_width(Main.setWidth);
 };
 $hxClasses["ui.Text"] = ui_Text;
