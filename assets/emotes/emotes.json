@@ -73,5 +73,12 @@
     "wind_gauntlet":"#F6F057",
     "wind_shear":"#F6F057",
     "wind_surge":"#F6F057",
-    "wolf's_blood":"#FC6FEF"
+    "wolf's_blood":"#FC6FEF",
+    "amulet":"#FFC204",
+    "belt":"#FFC204",
+    "boots":"#FFC204",
+    "small_armor_shard":"#4489EE",
+    "large_armor_shard":"#4489EE",
+    "small_health_potion":"#FF6262",
+    "large_health_potion":"#FF6262"
 }
